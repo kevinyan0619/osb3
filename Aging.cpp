@@ -29,7 +29,7 @@ FrameTableEntry* Aging::get_frame(FrameTable* f, vector<Process*>& pro_list) {
 	if (frame == nullptr) {
 		// record page replacement
 
-		// the R bit is reset every 10th page replacement
+		// update 32-bit vector at each clock interrupt
 		if (count == 0) {
 			for (int i = 0; i < f->frame_table.size(); i++) {
 
@@ -37,6 +37,10 @@ FrameTableEntry* Aging::get_frame(FrameTable* f, vector<Process*>& pro_list) {
 				PageTableEntry* page =
 						&(pro_list[fm->proid]->page_table[fm->vpage]);
 
+				// counters are shifted right 1 bit
+				counter_list[i][BITSET_SIZE - 1] >>= 1;
+
+				// R bit is added to the leftmost
 				if (page->referenced == 1) {
 					counter_list[i][BITSET_SIZE - 1] = 1;
 				}
@@ -47,11 +51,11 @@ FrameTableEntry* Aging::get_frame(FrameTable* f, vector<Process*>& pro_list) {
 
 			}
 
-			// reset R bit
-			for (int i = 0; i < pro_list.size(); i++) {
-				for (int j = 0; j < pro_list[i]->page_table.size(); j++)
-					pro_list[i]->page_table[j].referenced = 0;
-			}
+//			 reset R bit
+//			for (int i = 0; i < pro_list.size(); i++) {
+//				for (int j = 0; j < pro_list[i]->page_table.size(); j++)
+//					pro_list[i]->page_table[j].referenced = 0;
+//			}
 
 		}
 
@@ -64,6 +68,8 @@ FrameTableEntry* Aging::get_frame(FrameTable* f, vector<Process*>& pro_list) {
 
 		}
 
+
+		// clear the counter for the victim frame
 		counter_list[minIndex].reset();
 
 		count++;

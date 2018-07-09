@@ -74,6 +74,7 @@ int main() {
 	int frame_size = 32;
 	Process* cur_pro;
 	FrameTable* frame_table = new FrameTable(frame_size);
+	int replace_count = 0;
 
 	string instr;
 	int vpage = -1;
@@ -103,7 +104,6 @@ int main() {
 
 					if (vma_entry.write_protected == 1 && instr == "w") {
 						// write seg fault
-
 						continue;
 					}
 
@@ -115,17 +115,20 @@ int main() {
 					pte.file_mapped = vma_entry.filemapped;
 					break;
 				}
-
 			}
 
 			if (!valid) { // invalid reference, seg falut
 				continue;
-
 			}
 
 			FrameTableEntry* frame = pager->get_frame(frame_table, pro_list);
 
 			if (!frame->isFree) {
+
+				replace_count++;
+				replace_count %= 10;
+				// accumulate num of page replacement?
+
 				// unmap UNMAP
 
 				PageTableEntry& victim =
@@ -189,7 +192,16 @@ int main() {
 		if (instr == "w")
 			pte.modified = 1;
 
-	}
+		// reset R bit every 10th page replacement
+		if (replace_count == 0) {
+			for (int i = 0; i < pro_list.size(); i++) {
+				for (int j = 0; j < pro_list[i]->page_table.size(); j++)
+					pro_list[i]->page_table[j].referenced = 0;
+			}
+
+		}
+
+	} // end of while get instruction
 
 	cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
 	return 0;
