@@ -123,10 +123,12 @@ int main() {
 			FrameTableEntry* frame = pager->get_frame(frame_table, pro_list);
 
 			if (!frame->isFree) {
+				// unmap UNMAP
+
+
+
 				PageTableEntry& victim =
 						pro_list[frame->proid]->page_table[frame->vpage];
-
-				// unmap
 
 				if (victim.modified == 1) { // dirty page
 					if (victim.file_mapped == 1) {
@@ -139,18 +141,20 @@ int main() {
 						victim.pagedout = 1;
 
 					}
+
+					// all changed are made to the local disk
 					victim.modified = 0;
 
 				}
 
 				// unmap
 				victim.present = 0;
-				victim.referenced = 0;
 				victim.index_to_frame = 0;
 
 			}
 
 			else {
+				// the free frame will be used
 				frame->isFree = false;
 			}
 
