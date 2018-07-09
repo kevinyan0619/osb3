@@ -107,7 +107,10 @@ int main() {
 						continue;
 					}
 
+					// the vpage is within the valid VMA range
 					valid = true;
+
+					// update pte info according to vma
 					pte.write_protect = vma_entry.write_protected;
 					pte.file_mapped = vma_entry.filemapped;
 					break;
@@ -125,8 +128,6 @@ int main() {
 			if (!frame->isFree) {
 				// unmap UNMAP
 
-
-
 				PageTableEntry& victim =
 						pro_list[frame->proid]->page_table[frame->vpage];
 
@@ -142,7 +143,7 @@ int main() {
 
 					}
 
-					// all changed are made to the local disk
+					// all changes are made to the local disk
 					victim.modified = 0;
 
 				}
@@ -182,7 +183,7 @@ int main() {
 			frame->proid = cur_pro->pid;
 			frame->vpage = vpage;
 
-		} // end of if pte is present
+		} // end of check if pte is present
 
 		pte.referenced = 1;
 		if (instr == "w")
