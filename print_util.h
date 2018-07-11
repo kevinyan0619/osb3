@@ -11,7 +11,7 @@
 
 #include <vector>
 #include "process.h"
-#include "frametable.h"
+#include "frameTable.h"
 #include "totalStats.h"
 #include <iostream>
 using namespace std;

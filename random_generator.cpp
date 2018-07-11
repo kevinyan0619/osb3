@@ -8,7 +8,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "Random_generator.h"
+#include "random_generator.h"
 
 Random_generator::Random_generator(const string& randfile) {
 	ifstream myfile(randfile);

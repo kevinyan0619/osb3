@@ -39,10 +39,10 @@ int main(int argc, char **argv) {
 	vector<string> token_list;
 	//string file_name = "in10";
 	int frame_size = 32;
-	Options* ops = new Options("OPFS");
+	//Options* ops = new Options("OPFS");
 	//FrameTable* frame_table = new FrameTable(frame_size);
 
-
+	Options* ops;
 	string file_name = argv[argc - 2];
 	string rand_file = argv[argc - 1];
 
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
 	string opt;
 	int c = 0;
 
-	while ((c = getopt(argc, argv, "a:o:f")) != -1) {
+	while ((c = getopt(argc, argv, "a:o:f:")) != -1) {
 		switch (c) {
 		case 'a':
 			opt = optarg;
@@ -93,15 +93,15 @@ int main(int argc, char **argv) {
 		case 'o':
 			opt = optarg;
 
-			for (int i = 0; i < opt.size(); i++) {
-				char op = opt[i];
-				if (op != 'O' && op != 'P' && op != 'F' && op != 'S') {
-					fprintf(stderr,
-							"Option -o requires an valid option set.\n");
-					exit(1);
-
-				}
-			}
+//			for (int i = 0; i < opt.size(); i++) {
+//				char op = opt[i];
+//				if (op != 'O' && op != 'P' && op != 'F' && op != 'S') {
+//					fprintf(stderr,
+//							"Option -o requires an valid option set.\n");
+//					exit(1);
+//
+//				}
+//			}
 
 			ops = new Options(optarg);
 

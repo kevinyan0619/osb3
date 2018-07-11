@@ -10,9 +10,9 @@
 
 typedef struct TotalStats {
 
-	int ctx_switches;
-	int inst_count;
-	int cost;
+	unsigned long ctx_switches;
+	unsigned long inst_count;
+	unsigned long long cost;
 
 	TotalStats() :
 			ctx_switches(0), inst_count(0), cost(0) {

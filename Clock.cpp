@@ -5,7 +5,7 @@
  *      Author: kevinyan
  */
 
-#include "clock.h"
+#include "Clock.h"
 
 Clock::Clock() :
 		hand(0) {
