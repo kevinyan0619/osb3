@@ -11,27 +11,22 @@ void printP(const vector<Process*>& list) {
 	for (int i = 0; i < list.size(); i++) {
 		Process* pro = list[i];
 
-		cout << "PT[" << pro->pid << "]";
+		cout << "PT[" << pro->pid << "]:";
 
 		for (int j = 0; j < pro->page_table.size(); j++) {
-			PageTableEntry entry = pro->page_table[i];
+			PageTableEntry entry = pro->page_table[j];
 
 			if (entry.present == 1) {
-				cout << " " << "j" << ":";
+				cout << " " << j << ":";
 				cout << (entry.referenced ? "R" : "-");
 				cout << (entry.modified ? "M" : "-");
 				cout << (entry.pagedout ? "S" : "-");
 			} else {
 				cout << " " << (entry.pagedout ? "#" : "*");
 			}
-
 		}
-
-		cout << '\n';
 	}
-
 	cout << endl;
-
 }
 
 void printF(const FrameTable* frame) {
@@ -43,7 +38,7 @@ void printF(const FrameTable* frame) {
 		else
 			cout << " " << entry.proid << ":" << entry.vpage;
 	}
-
+	cout << endl;
 }
 
 void printS(const vector<Process*>& list, TotalStats tstas) {

@@ -11,7 +11,6 @@
 #include <vector>
 #include <string>
 
-#include "pager.h"
 #include "fileReader.h"
 #include "process.h"
 #include "frameTable.h"
@@ -20,6 +19,12 @@
 #include "totalStats.h"
 #include "print_util.h"
 
+#include "FIFO.h"
+#include "Second_Chance.h"
+#include "Random.h"
+#include "NRU.h"
+#include "Aging.h"
+
 //#include "frameTable.h"
 using namespace std;
 
@@ -27,6 +32,12 @@ int main() {
 
 	vector<string> token_list;
 	string file_name = "in1";
+	int frame_size = 32;
+
+	Pager* pager;
+	pager = new Second_Chance();
+
+
 	init_token_list(token_list, file_name);
 	token_list.push_back("");
 	vector<Process*> pro_list;
@@ -76,14 +87,13 @@ int main() {
 
 	}
 
-	for (int k = 0; k < pro_list.size(); k++)
-		cout << pro_list[k]->pid << '\n';
+//	for (int k = 0; k < pro_list.size(); k++)
+//		cout << pro_list[k]->pid << '\n';
 
-	Pager* pager;
-	int frame_size = 32;
+
+
 	Process* cur_pro;
 	FrameTable* frame_table = new FrameTable(frame_size);
-	int replace_count = 0;
 
 	string instr;
 	int vpage = -1;
@@ -93,11 +103,11 @@ int main() {
 
 		int operand = stoi(get_token(token_list));
 
-		tstats.inst_count++;
-
 		if (ops->Oops)
 			cout << tstats.inst_count << ": ==> " << instr << " " << operand
 					<< endl;
+
+		tstats.inst_count++;
 
 		if (instr == "c") { // context switch
 			tstats.ctx_switches++;
@@ -158,13 +168,13 @@ int main() {
 
 			FrameTableEntry* frame = pager->get_frame(frame_table, pro_list);
 
-			if (!frame->isFree) {
+			if (!(frame->isFree)) {
 
 				// accumulate num of page replacement?
 
 				// unmap UNMAP
 				if (ops->Oops)
-					cout << " UNMAP" << frame->proid << ":" << frame->vpage
+					cout << " UNMAP " << frame->proid << ":" << frame->vpage
 							<< endl;
 
 				PageTableEntry& victim =
@@ -193,7 +203,6 @@ int main() {
 
 					// all changes are made to the local disk
 					victim.modified = 0;
-
 				}
 
 				// unmap
@@ -209,7 +218,7 @@ int main() {
 				frame->isFree = false;
 			}
 
-			if (pte.file_mapped == 1) { // file mapped
+			if (pte.file_mapped) { // file mapped
 				tstats.cost += FILE_IN_COST;
 				cur_stats.fins++;
 				if (ops->Oops)
@@ -219,7 +228,7 @@ int main() {
 
 			else { //not file mapped
 
-				if (pte.pagedout == 1) { 	// paged out to swap device before
+				if (pte.pagedout) { 	// paged out to swap device before
 					tstats.cost += PAGE_IN_COST;
 					cur_stats.ins++;
 					if (ops->Oops)
@@ -240,10 +249,11 @@ int main() {
 			if (ops->Oops)
 				cout << " MAP " << frame->index << endl;
 
+			// update pte
 			pte.present = 1;
 			pte.index_to_frame = frame->index;
 
-			// update frame info
+			// update frame table
 			frame->proid = cur_pro->pid;
 			frame->vpage = vpage;
 
@@ -263,5 +273,11 @@ int main() {
 		printS(pro_list, tstats);
 
 	cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
+
+//	for (int i = 0; i < pro_list.size(); i++) {
+//		for (int j = 0; j < pro_list[i]->page_table.size(); j++)
+//			cout << pro_list[i]->page_table[j].present << " ";
+//	}
+
 	return 0;
 }
