@@ -19,6 +19,7 @@ Random_generator::Random_generator(const string& randfile) {
 		exit(1);
 	}
 
+	// get size
 	getline(myfile, line);
 	randvals.reserve(stoi(line));
 	while (getline(myfile, line)) {
@@ -31,7 +32,7 @@ Random_generator::Random_generator(const string& randfile) {
 
 int Random_generator::myrandom(int num) {
 	static int ofs = 0;
-	int sum = 1 + (randvals[ofs] % num);
+	int sum = randvals[ofs] % num;
 	ofs++;
 	if (ofs == randvals.size())
 		ofs = 0;

@@ -20,16 +20,15 @@ FrameTableEntry* Second_Chance::get_frame(FrameTable* f,
 
 		frame = page_queue.front();
 		PageTableEntry* pte =
-				&(pro_list[frame->proid]->page_table[frame->vpage]);
+				&((pro_list[frame->proid])->page_table[frame->vpage]);
 
-		while (pte->referenced != 0) {
+		while (pte->referenced == 1) {
 			pte->referenced = 0;
 			page_queue.pop();
 			page_queue.push(frame);
 
 			frame = page_queue.front();
-			PageTableEntry* pte =
-					&(pro_list[frame->proid]->page_table[frame->vpage]);
+			pte = &((pro_list[frame->proid])->page_table[frame->vpage]);
 		}
 
 		page_queue.pop();
@@ -37,9 +36,10 @@ FrameTableEntry* Second_Chance::get_frame(FrameTable* f,
 
 	}
 
-	else
+	else {
 		page_queue.push(frame);
-
+	}
 	return frame;
 
 }
+

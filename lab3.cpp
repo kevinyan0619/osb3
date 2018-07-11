@@ -6,6 +6,8 @@
 // Description : Hello World in C++, Ansi-style
 //============================================================================
 
+
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -20,10 +22,10 @@
 #include "print_util.h"
 
 //#include "FIFO.h"
-//include "Second_Chance.h"
+#include "Second_Chance.h"
 //#include "Random.h"
-//include "NRU.h"
-#include "Aging.h"
+//#include "NRU.h"
+//#include "Aging.h"
 
 #include "frameTable.h"
 using namespace std;
@@ -35,11 +37,11 @@ int main() {
 	int frame_size = 32;
 
 	Pager* pager;
-	//pager = new Second_Chance();
+	pager = new Second_Chance();
 	//pager = new FIFO();
 	//pager = new Random("rfile");
 	//pager = new NRU("rfile");
-	pager = new Aging(frame_size);
+	//pager = new Aging(frame_size);
 
 	init_token_list(token_list, file_name);
 	token_list.push_back("");
@@ -309,3 +311,5 @@ int main() {
 
 	return 0;
 }
+
+
