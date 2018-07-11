@@ -10,6 +10,7 @@
 
 #include "vmaEntry.h"
 #include "pageTableEntry.h"
+#include "pstats.h"
 #include <array>
 #include <vector>
 
@@ -22,9 +23,8 @@ typedef struct Process {
 
 	array<PageTableEntry, PAGE_TABLE_SIZE> page_table;
 
+	Pstats pstats;
 
 } Process;
-
-
 
 #endif /* PROCESS_H_ */

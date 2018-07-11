@@ -16,6 +16,9 @@
 #include "process.h"
 #include "frameTable.h"
 #include "vmaEntry.h"
+#include "options.h"
+#include "totalStats.h"
+#include "print_util.h"
 
 //#include "frameTable.h"
 using namespace std;
@@ -27,6 +30,9 @@ int main() {
 	init_token_list(token_list, file_name);
 	token_list.push_back("");
 	vector<Process*> pro_list;
+
+	Options* ops = new Options("OPFS");
+	TotalStats tstats;
 //	int i = 0;
 //	while (i < token_list.size()) {
 //		cout << get_token(token_list) << '\n';
@@ -42,8 +48,8 @@ int main() {
 	int pid = 0;
 	for (int i = 0; i < num_pro; i++) {
 
-		Process proc;
-		proc.pid = pid;
+		Process* proc = new Process();
+		proc->pid = pid;
 
 		num_vma = stoi(get_token(token_list));
 
@@ -61,14 +67,17 @@ int main() {
 			entry.write_protected = write_protected;
 			entry.filemapped = file_Mapped;
 
-			proc.vma_table.push_back(entry);
+			proc->vma_table.push_back(entry);
 
 		}
 
-		pro_list.push_back(&proc);
+		pro_list.push_back(proc);
 		pid++;
 
 	}
+
+	for (int k = 0; k < pro_list.size(); k++)
+		cout << pro_list[k]->pid << '\n';
 
 	Pager* pager;
 	int frame_size = 32;
@@ -82,17 +91,31 @@ int main() {
 
 	while ((instr = get_token(token_list)) != "") {
 
+		int operand = stoi(get_token(token_list));
+
+		tstats.inst_count++;
+
+		if (ops->Oops)
+			cout << tstats.inst_count << ": ==> " << instr << " " << operand
+					<< endl;
+
 		if (instr == "c") { // context switch
-			pro_swi = stoi(get_token(token_list));
+			tstats.ctx_switches++;
+			tstats.cost += CONTEXT_SWITCH_COST;
+			pro_swi = operand;
 
 			cur_pro = pro_list[pro_swi];
 
 			continue;
 		}
 
-		vpage = stoi(get_token(token_list));
+		tstats.cost += REF_COST;
+
+		vpage = operand;
 
 		PageTableEntry& pte = cur_pro->page_table[vpage];
+
+		Pstats& cur_stats = cur_pro->pstats;
 
 		if (!pte.present) {
 			bool valid = false;
@@ -104,6 +127,13 @@ int main() {
 
 					if (vma_entry.write_protected == 1 && instr == "w") {
 						// write seg fault
+
+						pte.referenced = 1;
+						cur_stats.segprot++;
+						tstats.cost += SEGPROT_COST;
+						if (ops->Oops) {
+							cout << " SEGPROT" << endl;
+						}
 						continue;
 					}
 
@@ -118,6 +148,11 @@ int main() {
 			}
 
 			if (!valid) { // invalid reference, seg falut
+				tstats.cost += SEGV_COST;
+				cur_stats.segv++;
+				if (ops->Oops)
+					cout << " SEGV" << endl;
+
 				continue;
 			}
 
@@ -125,24 +160,34 @@ int main() {
 
 			if (!frame->isFree) {
 
-				replace_count++;
-				replace_count %= 10;
 				// accumulate num of page replacement?
 
 				// unmap UNMAP
+				if (ops->Oops)
+					cout << " UNMAP" << frame->proid << ":" << frame->vpage
+							<< endl;
 
 				PageTableEntry& victim =
 						pro_list[frame->proid]->page_table[frame->vpage];
 
+				Pstats& victim_stats = pro_list[frame->proid]->pstats;
+
 				if (victim.modified == 1) { // dirty page
 					if (victim.file_mapped == 1) {
-						// fout
+						tstats.cost += FILE_OUT_COST;
+						victim_stats.fouts++;
+						if (ops->Oops)
+							cout << " FOUT" << endl;
 
 					}
 
 					else {
 						// paged the page out to a swap device
+						tstats.cost += PAGE_OUT_COST;
 						victim.pagedout = 1;
+						victim_stats.outs++;
+						if (ops->Oops)
+							cout << " OUT" << endl;
 
 					}
 
@@ -152,6 +197,8 @@ int main() {
 				}
 
 				// unmap
+				tstats.cost += UNMAP_COST;
+				victim_stats.unmaps++;
 				victim.present = 0;
 				victim.index_to_frame = 0;
 
@@ -163,21 +210,35 @@ int main() {
 			}
 
 			if (pte.file_mapped == 1) { // file mapped
-				// FIN
+				tstats.cost += FILE_IN_COST;
+				cur_stats.fins++;
+				if (ops->Oops)
+					cout << " FIN" << endl;
 
 			}
 
 			else { //not file mapped
 
 				if (pte.pagedout == 1) { 	// paged out to swap device before
-
+					tstats.cost += PAGE_IN_COST;
+					cur_stats.ins++;
+					if (ops->Oops)
+						cout << " IN" << endl;
 				}
 
 				else { // ZERO
-
+					tstats.cost += ZERO_COST;
+					cur_stats.zeros++;
+					if (ops->Oops)
+						cout << " ZERO" << endl;
 				}
 
 			}
+
+			tstats.cost += MAP_COST;
+			cur_stats.maps++;
+			if (ops->Oops)
+				cout << " MAP " << frame->index << endl;
 
 			pte.present = 1;
 			pte.index_to_frame = frame->index;
@@ -192,16 +253,14 @@ int main() {
 		if (instr == "w")
 			pte.modified = 1;
 
-		// reset R bit every 10th page replacement
-		if (replace_count == 0) {
-			for (int i = 0; i < pro_list.size(); i++) {
-				for (int j = 0; j < pro_list[i]->page_table.size(); j++)
-					pro_list[i]->page_table[j].referenced = 0;
-			}
-
-		}
-
 	} // end of while get instruction
+
+	if (ops->Pops)
+		printP(pro_list);
+	if (ops->Fops)
+		printF(frame_table);
+	if (ops->Sops)
+		printS(pro_list, tstats);
 
 	cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
 	return 0;
