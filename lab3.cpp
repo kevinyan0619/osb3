@@ -1,17 +1,20 @@
 //============================================================================
 // Name        : lab3.cpp
-// Author      : 
+// Author      : Shucheng Yan
 // Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
+// Copyright   : Shucheng Yan sy1253
+// Description : MMU
 //============================================================================
-
-
 
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <string>
+
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "fileReader.h"
 #include "process.h"
@@ -21,34 +24,111 @@
 #include "totalStats.h"
 #include "print_util.h"
 
-//#include "FIFO.h"
+#include "FIFO.h"
 #include "Second_Chance.h"
-//#include "Random.h"
-//#include "NRU.h"
-//#include "Aging.h"
+#include "Random.h"
+#include "NRU.h"
+#include "Aging.h"
+#include "Clock.h"
 
 #include "frameTable.h"
 using namespace std;
 
-int main() {
+int main(int argc, char **argv) {
 
 	vector<string> token_list;
-	string file_name = "in10";
+	//string file_name = "in10";
 	int frame_size = 32;
+	Options* ops = new Options("OPFS");
+	//FrameTable* frame_table = new FrameTable(frame_size);
 
-	Pager* pager;
-	pager = new Second_Chance();
-	//pager = new FIFO();
-	//pager = new Random("rfile");
-	//pager = new NRU("rfile");
-	//pager = new Aging(frame_size);
+
+	string file_name = argv[argc - 2];
+	string rand_file = argv[argc - 1];
+
 
 	init_token_list(token_list, file_name);
 	token_list.push_back("");
 	vector<Process*> pro_list;
-
-	Options* ops = new Options("OPFS");
 	TotalStats tstats;
+
+
+	Pager* pager;
+	FrameTable* frame_table;
+	//pager = new Second_Chance();
+	//pager = new FIFO();
+	//pager = new Random("rfile");
+	//pager = new NRU("rfile");
+	//pager = new Aging(frame_size);
+	//pager = new Clock();
+
+	string opt;
+	int c = 0;
+
+	while ((c = getopt(argc, argv, "a:o:f")) != -1) {
+		switch (c) {
+		case 'a':
+			opt = optarg;
+
+			if (opt == "f")
+				pager = new FIFO();
+			else if (opt == "s")
+				pager = new Second_Chance();
+			else if (opt == "r")
+				pager = new Random(rand_file);
+			else if (opt == "n")
+				pager = new NRU(rand_file);
+			else if (opt == "c")
+				pager = new Clock();
+			else if (opt == "a")
+				pager = new Aging(frame_size);
+			else {
+				fprintf(stderr,
+						"Option -a requires an valid MMU algo choice.\n");
+				exit(1);
+			}
+
+			break;
+
+		case 'o':
+			opt = optarg;
+
+			for (int i = 0; i < opt.size(); i++) {
+				char op = opt[i];
+				if (op != 'O' && op != 'P' && op != 'F' && op != 'S') {
+					fprintf(stderr,
+							"Option -o requires an valid option set.\n");
+					exit(1);
+
+				}
+			}
+
+			ops = new Options(optarg);
+
+			break;
+
+		case 'f':
+			opt = optarg;
+
+			frame_table = new FrameTable(stoi(opt));
+
+			break;
+
+		case '?':
+			if (optopt == 'c' || optopt == 'o' || optopt == 'f')
+				fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+			else if (isprint(optopt))
+				fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+			else
+				fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+			exit(1);
+
+		default:
+			exit(1);
+		}
+	}
+
+
 //	int i = 0;
 //	while (i < token_list.size()) {
 //		cout << get_token(token_list) << '\n';
@@ -96,7 +176,6 @@ int main() {
 //		cout << pro_list[k]->pid << '\n';
 
 	Process* cur_pro;
-	FrameTable* frame_table = new FrameTable(frame_size);
 
 	string instr;
 	int operand = -1;
@@ -127,7 +206,7 @@ int main() {
 		tstats.cost += REF_COST;
 
 		// get the corresponding vpage for read/write
-		int vpage = operand;
+		vpage = operand;
 		PageTableEntry& pte = cur_pro->page_table[vpage];
 		Pstats& cur_stats = cur_pro->pstats;
 
@@ -214,7 +293,7 @@ int main() {
 					victim.index_to_frame = 0;
 				}
 
-				// undate victim page table info
+				// update victim page table info
 				tstats.cost += UNMAP_COST;
 				victim_stats.unmaps++;
 
@@ -302,8 +381,6 @@ int main() {
 	if (ops->Sops)
 		printS(pro_list, tstats);
 
-	cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
-
 //	for (int i = 0; i < pro_list.size(); i++) {
 //		for (int j = 0; j < pro_list[i]->page_table.size(); j++)
 //			cout << pro_list[i]->page_table[j].present << " ";
@@ -311,5 +388,4 @@ int main() {
 
 	return 0;
 }
-
 

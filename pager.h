@@ -5,6 +5,9 @@
  *      Author: kevinyan
  */
 
+#ifndef PAGER_H_
+#define PAGER_H_
+
 #include "frameTable.h"
 #include "process.h"
 #include <vector>
@@ -18,3 +21,4 @@ public:
 	virtual FrameTableEntry* get_frame(FrameTable*, vector<Process*>&) = 0;
 };
 
+#endif /* PAGER_H_ */
