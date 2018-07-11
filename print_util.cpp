@@ -25,12 +25,13 @@ void printP(const vector<Process*>& list) {
 				cout << " " << (entry.pagedout ? "#" : "*");
 			}
 		}
+		cout <<'\n';
 	}
-	cout << endl;
+	//cout << endl;
 }
 
 void printF(const FrameTable* frame) {
-	cout << "FT: ";
+	cout << "FT:";
 	for (int i = 0; i < frame->frame_table.size(); i++) {
 		FrameTableEntry entry = frame->frame_table[i];
 		if (entry.isFree)

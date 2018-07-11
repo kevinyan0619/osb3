@@ -19,24 +19,27 @@
 #include "totalStats.h"
 #include "print_util.h"
 
-#include "FIFO.h"
-#include "Second_Chance.h"
-#include "Random.h"
-#include "NRU.h"
+//#include "FIFO.h"
+//include "Second_Chance.h"
+//#include "Random.h"
+//include "NRU.h"
 #include "Aging.h"
 
-//#include "frameTable.h"
+#include "frameTable.h"
 using namespace std;
 
 int main() {
 
 	vector<string> token_list;
-	string file_name = "in1";
+	string file_name = "in10";
 	int frame_size = 32;
 
 	Pager* pager;
-	pager = new Second_Chance();
-
+	//pager = new Second_Chance();
+	//pager = new FIFO();
+	//pager = new Random("rfile");
+	//pager = new NRU("rfile");
+	pager = new Aging(frame_size);
 
 	init_token_list(token_list, file_name);
 	token_list.push_back("");
@@ -90,18 +93,17 @@ int main() {
 //	for (int k = 0; k < pro_list.size(); k++)
 //		cout << pro_list[k]->pid << '\n';
 
-
-
 	Process* cur_pro;
 	FrameTable* frame_table = new FrameTable(frame_size);
 
 	string instr;
+	int operand = -1;
 	int vpage = -1;
 	int pro_swi = -1;
 
 	while ((instr = get_token(token_list)) != "") {
 
-		int operand = stoi(get_token(token_list));
+		operand = stoi(get_token(token_list));
 
 		if (ops->Oops)
 			cout << tstats.inst_count << ": ==> " << instr << " " << operand
@@ -110,10 +112,11 @@ int main() {
 		tstats.inst_count++;
 
 		if (instr == "c") { // context switch
+
 			tstats.ctx_switches++;
 			tstats.cost += CONTEXT_SWITCH_COST;
-			pro_swi = operand;
 
+			pro_swi = operand;
 			cur_pro = pro_list[pro_swi];
 
 			continue;
@@ -121,31 +124,18 @@ int main() {
 
 		tstats.cost += REF_COST;
 
-		vpage = operand;
-
+		// get the corresponding vpage for read/write
+		int vpage = operand;
 		PageTableEntry& pte = cur_pro->page_table[vpage];
-
 		Pstats& cur_stats = cur_pro->pstats;
 
-		if (!pte.present) {
+		if (!pte.present) { // handle page fault
+
 			bool valid = false;
-
 			for (int i = 0; i < cur_pro->vma_table.size(); i++) {
-				VMAEntry vma_entry = cur_pro->vma_table[i];
-				if (vma_entry.start_vpage <= vpage
-						&& vma_entry.end_vpage >= vpage) {
-
-					if (vma_entry.write_protected == 1 && instr == "w") {
-						// write seg fault
-
-						pte.referenced = 1;
-						cur_stats.segprot++;
-						tstats.cost += SEGPROT_COST;
-						if (ops->Oops) {
-							cout << " SEGPROT" << endl;
-						}
-						continue;
-					}
+				const VMAEntry& vma_entry = cur_pro->vma_table[i];
+				if (vpage >= vma_entry.start_vpage
+						&& vpage <= vma_entry.end_vpage) {
 
 					// the vpage is within the valid VMA range
 					valid = true;
@@ -155,7 +145,22 @@ int main() {
 					pte.file_mapped = vma_entry.filemapped;
 					break;
 				}
+
 			}
+
+//
+//			if (instr == "w" && pte.write_protect) { // write seg fault
+//
+//				pte.referenced = 1;
+//				cur_stats.segprot++;
+//				tstats.cost += SEGPROT_COST;
+//				if (ops->Oops) {
+//					cout << " SEGPROT" << endl;
+//				}
+//				//continue;
+//			} else{
+//				pte.modified = 1;
+//			}
 
 			if (!valid) { // invalid reference, seg falut
 				tstats.cost += SEGV_COST;
@@ -166,24 +171,26 @@ int main() {
 				continue;
 			}
 
+			// get a frame for the pte
 			FrameTableEntry* frame = pager->get_frame(frame_table, pro_list);
 
+			// page replacement is needed
 			if (!(frame->isFree)) {
-
-				// accumulate num of page replacement?
 
 				// unmap UNMAP
 				if (ops->Oops)
 					cout << " UNMAP " << frame->proid << ":" << frame->vpage
 							<< endl;
 
+				// locate the victim page table
 				PageTableEntry& victim =
 						pro_list[frame->proid]->page_table[frame->vpage];
 
 				Pstats& victim_stats = pro_list[frame->proid]->pstats;
 
 				if (victim.modified == 1) { // dirty page
-					if (victim.file_mapped == 1) {
+
+					if (victim.file_mapped == 1) { // file mapped page
 						tstats.cost += FILE_OUT_COST;
 						victim_stats.fouts++;
 						if (ops->Oops)
@@ -192,25 +199,25 @@ int main() {
 					}
 
 					else {
-						// paged the page out to a swap device
+						// page victim out to a swap device
 						tstats.cost += PAGE_OUT_COST;
 						victim.pagedout = 1;
 						victim_stats.outs++;
 						if (ops->Oops)
 							cout << " OUT" << endl;
-
 					}
 
 					// all changes are made to the local disk
 					victim.modified = 0;
+					victim.index_to_frame = 0;
 				}
 
-				// unmap
+				// undate victim page table info
 				tstats.cost += UNMAP_COST;
 				victim_stats.unmaps++;
-				victim.present = 0;
-				victim.index_to_frame = 0;
 
+				victim.present = 0;
+				//victim.index_to_frame = 0;
 			}
 
 			else {
@@ -223,12 +230,11 @@ int main() {
 				cur_stats.fins++;
 				if (ops->Oops)
 					cout << " FIN" << endl;
-
 			}
 
 			else { //not file mapped
 
-				if (pte.pagedout) { 	// paged out to swap device before
+				if (pte.pagedout) { // previously paged out to swap device before
 					tstats.cost += PAGE_IN_COST;
 					cur_stats.ins++;
 					if (ops->Oops)
@@ -236,12 +242,17 @@ int main() {
 				}
 
 				else { // ZERO
+					pte.present = 0;
+					pte.referenced = 0;
+					pte.modified = 0;
+					pte.pagedout = 0;
+					pte.index_to_frame = 0;
+
 					tstats.cost += ZERO_COST;
 					cur_stats.zeros++;
 					if (ops->Oops)
 						cout << " ZERO" << endl;
 				}
-
 			}
 
 			tstats.cost += MAP_COST;
@@ -260,8 +271,25 @@ int main() {
 		} // end of check if pte is present
 
 		pte.referenced = 1;
-		if (instr == "w")
-			pte.modified = 1;
+
+		if (instr == "w") { // write seg fault
+
+			if (pte.write_protect) {
+				pte.referenced = 1;
+				cur_stats.segprot++;
+				tstats.cost += SEGPROT_COST;
+				if (ops->Oops)
+					cout << " SEGPROT" << endl;
+
+			}
+			//continue;
+			else {
+				pte.modified = 1;
+			}
+		}
+
+//		if (instr == "w")
+//			pte.modified = 1;
 
 	} // end of while get instruction
 

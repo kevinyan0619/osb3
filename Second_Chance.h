@@ -13,7 +13,7 @@
 
 using namespace std;
 
-class Second_Chance: Pager {
+class Second_Chance: public Pager {
 public:
 	queue<FrameTableEntry*> page_queue;
 
