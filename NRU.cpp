@@ -27,10 +27,7 @@ FrameTableEntry* NRU::get_frame(FrameTable* f, vector<Process*>& pro_list) {
 		for (int i = 0; i < nru_class.size(); i++)
 			nru_class[i].clear();
 
-		// record page replacement
-
-		// R bit is reset every 10th page replacement
-
+		// update ranking for each frame
 		for (int i = 0; i < f->frame_table.size(); i++) {
 
 			FrameTableEntry* fm = &(f->frame_table)[i];
@@ -49,9 +46,9 @@ FrameTableEntry* NRU::get_frame(FrameTable* f, vector<Process*>& pro_list) {
 				frame = nru_class[i][randnum];
 				break;
 			}
-
 		}
 
+		// R bit is reset every 10th page replacement
 		if (count == 0) {
 
 			for (int i = 0; i < pro_list.size(); i++) {

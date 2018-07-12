@@ -24,7 +24,6 @@ private:
 
 	vector<int> randvals;
 
-
 };
 
 #endif /* RANDOM_GENERATOR_H_ */

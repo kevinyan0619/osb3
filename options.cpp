@@ -28,7 +28,5 @@ Options::Options(const string& ops) :
 			break;
 
 		}
-
 	}
-
 }

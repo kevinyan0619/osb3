@@ -8,7 +8,6 @@
 #ifndef CONSTANT_H_
 #define CONSTANT_H_
 
-
 #define PAGE_TABLE_SIZE 64
 #define MAX_BITS_FRAME_TABLE 7
 #define MAX_SIZE_FRAME_TABLE 128

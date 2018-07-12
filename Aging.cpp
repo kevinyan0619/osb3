@@ -27,10 +27,7 @@ FrameTableEntry* Aging::get_frame(FrameTable* f, vector<Process*>& pro_list) {
 	int minIndex = -1;
 
 	if (frame == nullptr) {
-		// record page replacement
 
-//		// update 32-bit vector at each clock interrupt
-//		if (count == 0) {
 		for (int i = 0; i < f->frame_table.size(); i++) {
 
 			FrameTableEntry* fm = &(f->frame_table)[i];
@@ -56,8 +53,6 @@ FrameTableEntry* Aging::get_frame(FrameTable* f, vector<Process*>& pro_list) {
 				pro_list[i]->page_table[j].referenced = 0;
 		}
 
-//		}
-
 		for (int i = 0; i < f->frame_table.size(); i++) {
 			if (counter_list[i].to_ulong() < min) {
 				minIndex = i;
@@ -69,7 +64,6 @@ FrameTableEntry* Aging::get_frame(FrameTable* f, vector<Process*>& pro_list) {
 
 		// clear the counter for the victim frame
 		counter_list[minIndex].reset();
-
 		count++;
 		count %= 10;
 

@@ -25,9 +25,8 @@ void printP(const vector<Process*>& list) {
 				cout << " " << (entry.pagedout ? "#" : "*");
 			}
 		}
-		cout <<'\n';
+		cout << '\n';
 	}
-	//cout << endl;
 }
 
 void printF(const FrameTable* frame) {

@@ -19,5 +19,4 @@ using namespace std;
 string get_token(const vector<string>& list);
 void init_token_list(vector<string>& token_list, string file_name);
 
-
 #endif /* FILEREADER_H_ */

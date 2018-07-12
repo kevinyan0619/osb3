@@ -134,7 +134,10 @@ int main(int argc, char **argv) {
 	if (algo == "a")
 		pager = new Aging(frame_size);
 
+	// get the number of process
 	int num_pro = stoi(get_token(token_list));
+
+	// initialize other variables for processes
 	int num_vma = -1;
 	int start_vpage = -1;
 	int end_vpage = -1;
@@ -172,6 +175,7 @@ int main(int argc, char **argv) {
 
 	}
 
+	// start simulation
 	Process* cur_pro;
 	string instr;
 	int operand = -1;
@@ -206,23 +210,21 @@ int main(int argc, char **argv) {
 		PageTableEntry& pte = cur_pro->page_table[vpage];
 		Pstats& cur_stats = cur_pro->pstats;
 
-		if (!pte.present) { // handle page fault
+		// page fault case
+		if (!pte.present) {
 
+			// check the vapge is in valid VMA range
 			bool valid = false;
 			for (int i = 0; i < cur_pro->vma_table.size(); i++) {
-				const VMAEntry& vma_entry = cur_pro->vma_table[i];
+				VMAEntry& vma_entry = cur_pro->vma_table[i];
 				if (vpage >= vma_entry.start_vpage
 						&& vpage <= vma_entry.end_vpage) {
-
-					// the vpage is within the valid VMA range
 					valid = true;
-
 					// update pte info according to vma
 					pte.write_protect = vma_entry.write_protected;
 					pte.file_mapped = vma_entry.filemapped;
 					break;
 				}
-
 			}
 
 //
@@ -239,12 +241,13 @@ int main(int argc, char **argv) {
 //				pte.modified = 1;
 //			}
 
-			if (!valid) { // invalid reference, seg falut
+			if (!valid) { // invalid reference, seg fault
 				tstats.cost += SEGV_COST;
 				cur_stats.segv++;
 				if (ops->Oops)
 					cout << " SEGV" << endl;
 
+				// get to the next instruction
 				continue;
 			}
 
@@ -254,7 +257,6 @@ int main(int argc, char **argv) {
 			// page replacement is needed
 			if (!(frame->isFree)) {
 
-				// unmap UNMAP
 				if (ops->Oops)
 					cout << " UNMAP " << frame->proid << ":" << frame->vpage
 							<< endl;
@@ -267,16 +269,15 @@ int main(int argc, char **argv) {
 
 				if (victim.modified == 1) { // dirty page
 
-					if (victim.file_mapped == 1) { // file mapped page
+					if (victim.file_mapped == 1) { // the victim page is file mapped
 						tstats.cost += FILE_OUT_COST;
 						victim_stats.fouts++;
 						if (ops->Oops)
 							cout << " FOUT" << endl;
-
 					}
 
 					else {
-						// page victim out to a swap device
+						// page the victim out to a swap device
 						tstats.cost += PAGE_OUT_COST;
 						victim.pagedout = 1;
 						victim_stats.outs++;
@@ -286,13 +287,12 @@ int main(int argc, char **argv) {
 
 					// all changes are made to the local disk
 					victim.modified = 0;
-					victim.index_to_frame = 0;
 				}
 
 				// update victim page table info
 				tstats.cost += UNMAP_COST;
 				victim_stats.unmaps++;
-
+				victim.index_to_frame = 0;
 				victim.present = 0;
 				//victim.index_to_frame = 0;
 			}
@@ -311,7 +311,7 @@ int main(int argc, char **argv) {
 
 			else { //not file mapped
 
-				if (pte.pagedout) { // previously paged out to swap device before
+				if (pte.pagedout) { // this vpage is previously paged out to swap device before
 					tstats.cost += PAGE_IN_COST;
 					cur_stats.ins++;
 					if (ops->Oops)
@@ -319,12 +319,6 @@ int main(int argc, char **argv) {
 				}
 
 				else { // ZERO
-					pte.present = 0;
-					pte.referenced = 0;
-					pte.modified = 0;
-					pte.pagedout = 0;
-					pte.index_to_frame = 0;
-
 					tstats.cost += ZERO_COST;
 					cur_stats.zeros++;
 					if (ops->Oops)
