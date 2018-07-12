@@ -37,24 +37,24 @@ using namespace std;
 int main(int argc, char **argv) {
 
 	vector<string> token_list;
+	Options* ops;
+	vector<Process*> pro_list;
+	TotalStats tstats;
+	Pager* pager;
+	FrameTable* frame_table;
+	int frame_size;
 	//string file_name = "in10";
-	int frame_size = 32;
+	//int frame_size = 32;
 	//Options* ops = new Options("OPFS");
 	//FrameTable* frame_table = new FrameTable(frame_size);
 
-	Options* ops;
 	string file_name = argv[argc - 2];
 	string rand_file = argv[argc - 1];
 
-
 	init_token_list(token_list, file_name);
+	// mark as the end of instruction
 	token_list.push_back("");
-	vector<Process*> pro_list;
-	TotalStats tstats;
 
-
-	Pager* pager;
-	FrameTable* frame_table;
 	//pager = new Second_Chance();
 	//pager = new FIFO();
 	//pager = new Random("rfile");
@@ -63,26 +63,27 @@ int main(int argc, char **argv) {
 	//pager = new Clock();
 
 	string opt;
+	string algo;
 	int c = 0;
 
 	while ((c = getopt(argc, argv, "a:o:f:")) != -1) {
 		switch (c) {
 		case 'a':
-			opt = optarg;
+			algo = optarg;
 
-			if (opt == "f")
+			if (algo == "f")
 				pager = new FIFO();
-			else if (opt == "s")
+			else if (algo == "s")
 				pager = new Second_Chance();
-			else if (opt == "r")
+			else if (algo == "r")
 				pager = new Random(rand_file);
-			else if (opt == "n")
+			else if (algo == "n")
 				pager = new NRU(rand_file);
-			else if (opt == "c")
+			else if (algo == "c")
 				pager = new Clock();
-			else if (opt == "a")
-				pager = new Aging(frame_size);
-			else {
+			else if (algo == "a") {
+				// do nothing, initialize pager after the frame size is known
+			} else {
 				fprintf(stderr,
 						"Option -a requires an valid MMU algo choice.\n");
 				exit(1);
@@ -93,15 +94,15 @@ int main(int argc, char **argv) {
 		case 'o':
 			opt = optarg;
 
-//			for (int i = 0; i < opt.size(); i++) {
-//				char op = opt[i];
-//				if (op != 'O' && op != 'P' && op != 'F' && op != 'S') {
-//					fprintf(stderr,
-//							"Option -o requires an valid option set.\n");
-//					exit(1);
-//
-//				}
-//			}
+			for (int i = 0; i < opt.size(); i++) {
+				char op = opt[i];
+				if (op != 'O' && op != 'P' && op != 'F' && op != 'S') {
+					fprintf(stderr,
+							"Option -o requires an valid option set.\n");
+					exit(1);
+
+				}
+			}
 
 			ops = new Options(optarg);
 
@@ -111,6 +112,7 @@ int main(int argc, char **argv) {
 			opt = optarg;
 
 			frame_table = new FrameTable(stoi(opt));
+			frame_size = stoi(opt);
 
 			break;
 
@@ -128,12 +130,9 @@ int main(int argc, char **argv) {
 		}
 	}
 
-
-//	int i = 0;
-//	while (i < token_list.size()) {
-//		cout << get_token(token_list) << '\n';
-//		i++;
-//	}
+	// initialize aging after the frame size is known
+	if (algo == "a")
+		pager = new Aging(frame_size);
 
 	int num_pro = stoi(get_token(token_list));
 	int num_vma = -1;
@@ -145,6 +144,7 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < num_pro; i++) {
 
 		Process* proc = new Process();
+
 		proc->pid = pid;
 
 		num_vma = stoi(get_token(token_list));
@@ -172,11 +172,7 @@ int main(int argc, char **argv) {
 
 	}
 
-//	for (int k = 0; k < pro_list.size(); k++)
-//		cout << pro_list[k]->pid << '\n';
-
 	Process* cur_pro;
-
 	string instr;
 	int operand = -1;
 	int vpage = -1;
@@ -362,9 +358,7 @@ int main(int argc, char **argv) {
 				if (ops->Oops)
 					cout << " SEGPROT" << endl;
 
-			}
-			//continue;
-			else {
+			} else {
 				pte.modified = 1;
 			}
 		}
@@ -380,11 +374,6 @@ int main(int argc, char **argv) {
 		printF(frame_table);
 	if (ops->Sops)
 		printS(pro_list, tstats);
-
-//	for (int i = 0; i < pro_list.size(); i++) {
-//		for (int j = 0; j < pro_list[i]->page_table.size(); j++)
-//			cout << pro_list[i]->page_table[j].present << " ";
-//	}
 
 	return 0;
 }

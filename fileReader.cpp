@@ -28,7 +28,7 @@ void init_token_list(vector<string>& token_list, string file_name) {
 	while (!myfile.eof()) {
 		myfile >> line;
 		if (line[0] == '#') {
-			myfile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+			myfile.ignore(numeric_limits<streamsize>::max(), '\n');
 		}
 
 		else {

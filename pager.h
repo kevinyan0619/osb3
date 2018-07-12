@@ -16,7 +16,9 @@ using namespace std;
 
 class Pager {
 public:
-	//Pager();
+	virtual ~Pager() {
+
+	};
 
 	virtual FrameTableEntry* get_frame(FrameTable*, vector<Process*>&) = 0;
 };
